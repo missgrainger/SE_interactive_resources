@@ -1,0 +1,229 @@
+
+<h2 class="sr-only">Quick recall quiz on software implementation methods: direct, phased, and parallel</h2>
+<style>
+  .quiz-wrap { padding: 1.5rem 0; font-family: var(--font-sans); }
+  .progress-bar-bg { height: 4px; background: var(--color-border-tertiary); border-radius: 2px; margin-bottom: 2rem; }
+  .progress-bar-fill { height: 4px; background: var(--color-text-primary); border-radius: 2px; transition: width 0.4s ease; }
+  .q-counter { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 0.5rem; }
+  .q-text { font-size: 17px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 1.5rem; line-height: 1.5; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option-btn { text-align: left; padding: 14px 18px; border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); cursor: pointer; font-size: 15px; color: var(--color-text-primary); transition: background 0.15s, border-color 0.15s; line-height: 1.4; }
+  .option-btn:hover:not(:disabled) { background: var(--color-background-secondary); border-color: var(--color-border-primary); }
+  .option-btn.correct { background: var(--color-background-success); border-color: var(--color-border-success); color: var(--color-text-success); }
+  .option-btn.incorrect { background: var(--color-background-danger); border-color: var(--color-border-danger); color: var(--color-text-danger); }
+  .option-btn.reveal { background: var(--color-background-success); border-color: var(--color-border-success); color: var(--color-text-success); opacity: 0.7; }
+  .option-btn:disabled { cursor: default; }
+  .feedback { margin-top: 1rem; font-size: 14px; color: var(--color-text-secondary); min-height: 20px; line-height: 1.5; }
+  .next-btn { margin-top: 1.5rem; padding: 10px 24px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); cursor: pointer; font-size: 14px; color: var(--color-text-primary); display: none; }
+  .next-btn:hover { background: var(--color-background-secondary); }
+  .results { text-align: center; padding: 2rem 0; }
+  .score-num { font-size: 48px; font-weight: 500; color: var(--color-text-primary); }
+  .score-label { font-size: 15px; color: var(--color-text-secondary); margin-bottom: 2rem; }
+  .result-msg { font-size: 16px; color: var(--color-text-primary); margin-bottom: 2rem; max-width: 420px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+  .restart-btn { padding: 10px 28px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); cursor: pointer; font-size: 14px; color: var(--color-text-primary); }
+  .restart-btn:hover { background: var(--color-background-secondary); }
+  .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: var(--border-radius-md); margin-bottom: 1rem; }
+  .tag-direct { background: var(--color-background-danger); color: var(--color-text-danger); }
+  .tag-phased { background: var(--color-background-info); color: var(--color-text-info); }
+  .tag-parallel { background: var(--color-background-warning); color: var(--color-text-warning); }
+  .tag-all { background: var(--color-background-secondary); color: var(--color-text-secondary); }
+</style>
+
+<div class="quiz-wrap">
+  <div id="quiz-screen">
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress" style="width:0%"></div></div>
+    <div class="q-counter" id="counter">Question 1 of 10</div>
+    <div id="tag-area"></div>
+    <div class="q-text" id="question"></div>
+    <div class="options" id="options"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next-btn" id="next-btn">Next question →</button>
+  </div>
+  <div class="results" id="results-screen" style="display:none">
+    <div class="score-num" id="score-display"></div>
+    <div class="score-label" id="score-label"></div>
+    <div class="result-msg" id="result-msg"></div>
+    <button class="restart-btn" onclick="restart()">Try again</button>
+  </div>
+</div>
+
+<script>
+const allQuestions = [
+  {
+    tag: "direct",
+    q: "Which implementation method switches off the old system and switches on the new one all at once?",
+    options: ["Parallel", "Phased", "Direct", "Pilot"],
+    answer: 2,
+    feedback: "Direct (or 'big bang') cutover — the old system goes off and the new one goes on in one event."
+  },
+  {
+    tag: "direct",
+    q: "FoxMeyer Drugs went bankrupt in 1996 following a failed software rollout. Which implementation method did they use?",
+    options: ["Phased", "Pilot", "Parallel", "Direct"],
+    answer: 3,
+    feedback: "FoxMeyer used a direct cutover — switching everything at once with no fallback, which proved catastrophic."
+  },
+  {
+    tag: "direct",
+    q: "Which of the following is the biggest risk of direct implementation?",
+    options: ["It is the most expensive method to run", "There is no fallback if something goes wrong", "Staff have to enter data twice", "Rollout takes too long"],
+    answer: 1,
+    feedback: "With direct implementation, if the new system fails there is no easy way to revert — the organisation is fully exposed."
+  },
+  {
+    tag: "phased",
+    q: "Australia's Consumer Data Right (CDR) rollout — banking first, then energy, then non-bank lenders — is an example of which implementation method?",
+    options: ["Direct", "Parallel", "Pilot", "Phased"],
+    answer: 3,
+    feedback: "The CDR was rolled out sector by sector — a textbook phased implementation by industry type."
+  },
+  {
+    tag: "phased",
+    q: "A company with 12 regional offices rolls out a new HR system one office at a time over six months. What implementation method is this?",
+    options: ["Pilot", "Phased", "Parallel", "Direct"],
+    answer: 1,
+    feedback: "Rolling out by location over time is phased implementation — staged by geography."
+  },
+  {
+    tag: "phased",
+    q: "Which of the following is a disadvantage of phased implementation?",
+    options: ["It exposes the entire organisation if something fails", "It is impossible to roll back", "Different teams may be working on different systems simultaneously, causing inconsistency", "It requires the most upfront capital of all methods"],
+    answer: 2,
+    feedback: "With phased rollout, some teams are on the new system while others aren't yet — this can cause data sync issues and confusion."
+  },
+  {
+    tag: "parallel",
+    q: "In parallel implementation, when is the old system turned off?",
+    options: ["Immediately when the new system goes live", "After a fixed period of exactly 30 days", "Once the new system has been proven to produce correct, reliable results", "When the pilot group gives approval"],
+    answer: 2,
+    feedback: "The old system stays live until the organisation is confident the new system is performing correctly — that's the key feature of parallel running."
+  },
+  {
+    tag: "parallel",
+    q: "TSB Bank's 2018 IT migration is often cited in the context of parallel implementation. Why?",
+    options: ["TSB used parallel implementation and it worked perfectly", "TSB chose direct cutover instead of parallel, resulting in millions of customers being locked out", "TSB ran both systems for too long, causing data corruption", "TSB used a phased rollout that became a parallel run by accident"],
+    answer: 1,
+    feedback: "TSB used a big bang direct cutover — widely criticised as the wrong choice for a critical banking system. Parallel running could have caught the issues before full exposure."
+  },
+  {
+    tag: "parallel",
+    q: "Why is parallel implementation considered the most expensive method?",
+    options: ["It requires a large pilot group to be paid for testing", "Training must be repeated for every location separately", "Both the old and new systems must be run and maintained simultaneously", "It always requires external consultants to manage the transition"],
+    answer: 2,
+    feedback: "Running two fully operational systems at the same time — including infrastructure, licences, and staff time — significantly increases cost."
+  },
+  {
+    tag: "all",
+    q: "A small startup is replacing its spreadsheet-based invoicing tool with a new system. There is no legacy system to maintain, the team is 8 people, and all staff are tech-savvy. Which method is most appropriate?",
+    options: ["Parallel — to protect financial data", "Phased — to reduce risk across the organisation", "Direct — low risk given the small team, simple system, and no legacy dependency", "Pilot — to test with a representative sample first"],
+    answer: 2,
+    feedback: "With a small, tech-confident team, a simple system, and no legacy system to maintain, direct cutover is low-risk and the most practical choice."
+  },
+  {
+    tag: "all",
+    q: "Which implementation method provides the strongest safety net if the new system fails?",
+    options: ["Pilot", "Direct", "Phased", "Parallel"],
+    answer: 3,
+    feedback: "Parallel keeps the old system fully live until the new one is proven — the strongest fallback of all four methods."
+  },
+  {
+    tag: "all",
+    q: "A company wants to implement a new payroll system but cannot afford for any employee to receive an incorrect pay. Which method is most appropriate?",
+    options: ["Direct — it is the fastest", "Phased — rolling out department by department", "Parallel — both systems process payroll simultaneously until the new one is verified", "Pilot — test with one department's payroll first"],
+    answer: 2,
+    feedback: "Payroll errors directly affect people's income. Parallel running is the industry standard for high-stakes financial systems — both systems process the same data until outputs match."
+  }
+];
+
+let questions = [];
+let current = 0;
+let score = 0;
+let answered = false;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function tagHTML(tag) {
+  const labels = { direct: "Direct", phased: "Phased", parallel: "Parallel", all: "All methods" };
+  return `<div class="tag tag-${tag}">${labels[tag]}</div>`;
+}
+
+function loadQuestion() {
+  const q = questions[current];
+  document.getElementById('counter').textContent = `Question ${current + 1} of ${questions.length}`;
+  document.getElementById('progress').style.width = `${(current / questions.length) * 100}%`;
+  document.getElementById('tag-area').innerHTML = tagHTML(q.tag);
+  document.getElementById('question').textContent = q.q;
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('next-btn').style.display = 'none';
+  answered = false;
+
+  const opts = document.getElementById('options');
+  opts.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = opt;
+    btn.onclick = () => selectAnswer(i);
+    opts.appendChild(btn);
+  });
+}
+
+function selectAnswer(i) {
+  if (answered) return;
+  answered = true;
+  const q = questions[current];
+  const btns = document.querySelectorAll('.option-btn');
+  btns.forEach(b => b.disabled = true);
+  if (i === q.answer) {
+    btns[i].classList.add('correct');
+    score++;
+    document.getElementById('feedback').textContent = '✓ ' + q.feedback;
+  } else {
+    btns[i].classList.add('incorrect');
+    btns[q.answer].classList.add('reveal');
+    document.getElementById('feedback').textContent = '✗ ' + q.feedback;
+  }
+  document.getElementById('next-btn').style.display = 'inline-block';
+  document.getElementById('next-btn').textContent = current < questions.length - 1 ? 'Next question →' : 'See results →';
+}
+
+document.getElementById('next-btn').onclick = () => {
+  current++;
+  if (current >= questions.length) showResults();
+  else loadQuestion();
+};
+
+function showResults() {
+  document.getElementById('progress').style.width = '100%';
+  document.getElementById('quiz-screen').style.display = 'none';
+  document.getElementById('results-screen').style.display = 'block';
+  const pct = Math.round((score / questions.length) * 100);
+  document.getElementById('score-display').textContent = `${score}/${questions.length}`;
+  document.getElementById('score-label').textContent = `${pct}%`;
+  let msg = '';
+  if (pct === 100) msg = "Perfect score — you clearly understand the trade-offs between methods, not just the definitions.";
+  else if (pct >= 75) msg = "Solid recall. Review any questions you missed and think about how each method's trade-offs connect to real scenarios.";
+  else if (pct >= 50) msg = "Getting there — revisit the comparison table and pay attention to what makes each method distinct, especially around risk and cost.";
+  else msg = "Head back to your notes and focus on the key differences between methods — especially risk level, cost, and when each is appropriate.";
+  document.getElementById('result-msg').textContent = msg;
+}
+
+function restart() {
+  current = 0;
+  score = 0;
+  questions = shuffle(allQuestions).slice(0, 10);
+  document.getElementById('quiz-screen').style.display = 'block';
+  document.getElementById('results-screen').style.display = 'none';
+  loadQuestion();
+}
+
+questions = shuffle(allQuestions).slice(0, 10);
+loadQuestion();
+</script>
